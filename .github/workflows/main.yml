@@ -1,0 +1,35 @@
+name: PDF to Excel Conversion
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pdf-files/*'  # This folder contains the PDFs to be converted.
+
+jobs:
+  convert-pdf-to-excel:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y poppler-utils
+        npm install pdf2excel
+
+    - name: Convert PDFs to Excel
+      run: |
+        for file in pdf-files/*.pdf; do
+          pdf2excel $file > converted/$(basename "$file" .pdf).xlsx
+        done
+
+    - name: Commit and push converted files
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add converted/
+        git commit -m "Convert PDFs to Excel"
+        git push
