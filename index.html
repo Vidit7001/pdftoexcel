@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to Excel Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>PDF to Excel Converter</h1>
+    <input type="file" id="pdfFile" accept="application/pdf">
+    <button id="convertBtn">Convert PDF to Excel</button>
+    <script>
+        document.getElementById('convertBtn').addEventListener('click', function() {
+            const file = document.getElementById('pdfFile').files[0];
+            if (file) {
+                convertPDFToExcel(file);
+            } else {
+                alert('Please select a PDF file.');
+            }
+        });
+
+        function convertPDFToExcel(pdfFile) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const pdfData = new Uint8Array(e.target.result);
+
+                pdfjsLib.getDocument(pdfData).promise.then(pdf => {
+                    let textContent = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        pdf.getPage(i).then(page => {
+                            page.getTextContent().then(content => {
+                                content.items.forEach(item => {
+                                    textContent += item.str + '\n';
+                                });
+                            });
+                        });
+                    }
+
+                    setTimeout(() => {
+                        const wb = XLSX.utils.book_new();
+                        const ws = XLSX.utils.aoa_to_sheet([[textContent]]);
+                        XLSX.utils.book_append_sheet(wb, ws, "Sheet 1");
+                        const excelFile = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
+                        const blob = new Blob([s2ab(excelFile)], { type: 'application/octet-stream' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = 'converted-file.xlsx';
+                        link.click();
+                    }, 2000); // Wait for PDF processing
+                });
+            };
+
+            reader.readAsArrayBuffer(pdfFile);
+        }
+
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) {
+                view[i] = s.charCodeAt(i) & 0xFF;
+            }
+            return buf;
+        }
+    </script>
+</body>
+</html>
