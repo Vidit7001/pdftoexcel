@@ -18,12 +18,13 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install -y poppler-utils
-        npm install pdf2excel
+        npm install pdf2excel --save
 
     - name: Convert PDFs to Excel
       run: |
         for file in pdf-files/*.pdf; do
-          pdf2excel $file > converted/$(basename "$file" .pdf).xlsx
+          # Extract tables from PDFs using pdf2excel
+          npx pdf2excel $file -o converted/$(basename "$file" .pdf).xlsx
         done
 
     - name: Commit and push converted files
