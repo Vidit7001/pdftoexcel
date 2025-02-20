@@ -11,6 +11,7 @@
     <h1>PDF to Excel Converter</h1>
     <input type="file" id="pdfFile" accept="application/pdf">
     <button id="convertBtn">Convert PDF to Excel</button>
+
     <script>
         document.getElementById('convertBtn').addEventListener('click', function() {
             const file = document.getElementById('pdfFile').files[0];
@@ -27,28 +28,36 @@
                 const pdfData = new Uint8Array(e.target.result);
 
                 pdfjsLib.getDocument(pdfData).promise.then(pdf => {
-                    let textContent = '';
+                    let data = [];
+                    let promises = [];
                     for (let i = 1; i <= pdf.numPages; i++) {
-                        pdf.getPage(i).then(page => {
-                            page.getTextContent().then(content => {
+                        const promise = pdf.getPage(i).then(page => {
+                            return page.getTextContent().then(content => {
+                                const pageData = [];
                                 content.items.forEach(item => {
-                                    textContent += item.str + '\n';
+                                    // Example: Identify and arrange text as a row, assuming text is in columns
+                                    const row = item.str.split(' ').map(text => text.trim());
+                                    pageData.push(row);
                                 });
+                                data = data.concat(pageData);
                             });
                         });
+                        promises.push(promise);
                     }
 
-                    setTimeout(() => {
+                    Promise.all(promises).then(() => {
+                        // Process the data further, if necessary, to format as a table
                         const wb = XLSX.utils.book_new();
-                        const ws = XLSX.utils.aoa_to_sheet([[textContent]]);
+                        const ws = XLSX.utils.aoa_to_sheet(data); // Create a table from rows
                         XLSX.utils.book_append_sheet(wb, ws, "Sheet 1");
+
                         const excelFile = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
                         const blob = new Blob([s2ab(excelFile)], { type: 'application/octet-stream' });
                         const link = document.createElement('a');
                         link.href = URL.createObjectURL(blob);
                         link.download = 'converted-file.xlsx';
                         link.click();
-                    }, 2000); // Wait for PDF processing
+                    });
                 });
             };
 
